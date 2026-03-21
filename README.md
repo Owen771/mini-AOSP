@@ -12,45 +12,74 @@ A from-scratch reimplementation of Android's core architecture (AOSP) for learni
 
 ### Current (Stage 0)
 
+**1. Boot: init starts all services**
+
 ```mermaid
-graph TD
-    init["init (C, PID 1)"]
-    sm["servicemanager (C)"]
-    ss["system_server (Kotlin)"]
-    app["hello_app (Kotlin)"]
+graph LR
+    init["init\n(C, PID 1)"]
+    sm["servicemanager\n(C)"]
+    ss["system_server\n(Kotlin)"]
+    app["hello_app\n(Kotlin)"]
 
-    init -->|"fork+exec"| sm
-    init -->|"fork+exec"| ss
-    init -->|"fork+exec"| app
+    init -->|fork+exec| sm
+    init -->|fork+exec| ss
+    init -->|fork+exec| app
+```
 
-    ss -->|"ADD_SERVICE ping"| sm
-    app -->|"GET_SERVICE ping"| sm
-    app -->|"PING"| ss
-    ss -->|"PONG ✓"| app
+**2. IPC: service discovery + PING/PONG**
+
+```mermaid
+sequenceDiagram
+    participant ss as system_server
+    participant sm as servicemanager
+    participant app as hello_app
+
+    ss->>sm: ADD_SERVICE ping /tmp/.../ping.sock
+    sm-->>ss: OK
+
+    app->>sm: GET_SERVICE ping
+    sm-->>app: /tmp/.../ping.sock
+
+    app->>ss: PING
+    ss-->>app: PONG ✓
 ```
 
 ### Target (Phase 1, Stage 8)
 
-```mermaid
-graph TD
-    init["init (C, PID 1)\ncrash-restart + property store"]
-    sm["servicemanager (C)\nBinder handle 0"]
-    zyg["zygote (C)\nfork JVM"]
-    lmkd["lmkd (C)\nkill by oom_adj"]
-    ss["system_server (Kotlin)\nAMS + PMS + PingService"]
-    apps["apps (Kotlin)\nActivities + Intents + BroadcastReceiver"]
+**1. Boot: init starts native daemons**
 
-    init -->|"fork+exec"| sm
-    init -->|"fork+exec"| zyg
-    init -->|"fork+exec"| lmkd
+```mermaid
+graph LR
+    init["init\n(C, PID 1)\ncrash-restart\nproperty store"]
+    sm["servicemanager\n(C)\nBinder handle 0"]
+    zyg["zygote\n(C)"]
+    lmkd["lmkd\n(C)"]
+
+    init -->|fork+exec| sm
+    init -->|fork+exec| zyg
+    init -->|fork+exec| lmkd
+```
+
+**2. Zygote forks JVM processes**
+
+```mermaid
+graph LR
+    zyg["zygote"]
+    ss["system_server\n(Kotlin)\nAMS + PMS"]
+    apps["apps\n(Kotlin)\nActivities + Intents"]
 
     zyg -->|"fork (no exec)"| ss
     zyg -->|"fork (no exec)"| apps
+```
 
+**3. Runtime: Binder IPC + memory management**
+
+```mermaid
+graph LR
+    apps["apps"] -->|"Binder: getService"| sm["servicemanager"]
+    apps -->|"Binder IPC"| ss["system_server"]
     ss -->|"Binder: addService"| sm
-    apps -->|"Binder: getService"| sm
-    apps -->|"Binder IPC"| ss
-    ss -->|"oom_adj scores"| lmkd
+    ss -->|"oom_adj scores"| lmkd["lmkd"]
 ```
 
 ---
