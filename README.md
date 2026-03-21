@@ -10,48 +10,47 @@ Real `fork()`, real `exec()`, real Unix sockets — not a simulation.
 
 A from-scratch reimplementation of Android's core architecture (AOSP) for learning purposes. Each component mirrors the real AOSP — same directory paths, same responsibilities, same boot sequence — but stripped down to the essential logic.
 
+### Current (Stage 0)
+
+```mermaid
+graph TD
+    init["init (C, PID 1)"]
+    sm["servicemanager (C)"]
+    ss["system_server (Kotlin)"]
+    app["hello_app (Kotlin)"]
+
+    init -->|"fork+exec"| sm
+    init -->|"fork+exec"| ss
+    init -->|"fork+exec"| app
+
+    ss -->|"ADD_SERVICE ping"| sm
+    app -->|"GET_SERVICE ping"| sm
+    app -->|"PING"| ss
+    ss -->|"PONG ✓"| app
 ```
-                        ┌─────────────────────────────────────┐
-                        │            Current (Stage 0)         │
-                        └─────────────────────────────────────┘
 
-                    init (C, PID 1)
-                      │ fork+exec
-          ┌───────────┼──────────────┐
-          ▼           ▼              ▼
-   servicemanager  system_server   hello_app
-      (C)           (Kotlin)       (Kotlin)
-       │               │              │
-       │  Unix socket  │              │
-       │◀──ADD_SERVICE─┘              │
-       │                              │
-       │◀─────GET_SERVICE─────────────┘
-       │                              │
-       │          system_server       │
-       │              │               │
-       │              │◀──PING────────┘
-       │              │───PONG───────▶│
-       │              │               └─ exit(0) ✓
+### Target (Phase 1, Stage 8)
 
-                    ┌─────────────────────────────────────┐
-                    │        Target (Phase 1, Stage 8)     │
-                    └─────────────────────────────────────┘
+```mermaid
+graph TD
+    init["init (C, PID 1)\ncrash-restart + property store"]
+    sm["servicemanager (C)\nBinder handle 0"]
+    zyg["zygote (C)\nfork JVM"]
+    lmkd["lmkd (C)\nkill by oom_adj"]
+    ss["system_server (Kotlin)\nAMS + PMS + PingService"]
+    apps["apps (Kotlin)\nActivities + Intents + BroadcastReceiver"]
 
-                    init (C, PID 1)
-                      │ property store + crash-restart
-          ┌───────────┼───────────┬──────────────┐
-          ▼           ▼           ▼              ▼
-   servicemanager   zygote      lmkd        property.sock
-      (C)           (C)         (C)
-    Binder h0     fork JVM    kill by oom_adj
-                    │
-            ┌───────┼───────┐
-            ▼               ▼
-      system_server       apps
-        (Kotlin)         (Kotlin)
-     AMS + PMS +       Activities +
-     PingService       Intents +
-                      BroadcastReceiver
+    init -->|"fork+exec"| sm
+    init -->|"fork+exec"| zyg
+    init -->|"fork+exec"| lmkd
+
+    zyg -->|"fork (no exec)"| ss
+    zyg -->|"fork (no exec)"| apps
+
+    ss -->|"Binder: addService"| sm
+    apps -->|"Binder: getService"| sm
+    apps -->|"Binder IPC"| ss
+    ss -->|"oom_adj scores"| lmkd
 ```
 
 ---

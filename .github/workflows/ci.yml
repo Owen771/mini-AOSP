@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Kotlin
+        run: |
+          curl -sL https://github.com/JetBrains/kotlin/releases/download/v2.0.0/kotlin-compiler-2.0.0.zip -o /tmp/kotlin.zip
+          sudo unzip -o /tmp/kotlin.zip -d /opt
+          echo "/opt/kotlinc/bin" >> $GITHUB_PATH
+
+      - name: Verify tools
+        run: |
+          gcc --version | head -1
+          java -version 2>&1 | head -1
+          kotlinc -version 2>&1 | head -1
+          make --version | head -1
+
+      - name: Run test
+        run: ./scripts/run-test.sh
