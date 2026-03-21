@@ -3,3 +3,7 @@ out/
 *.class
 *.DS_Store
 .vscode/
+
+# Override global gitignore that blocks build/
+!build/
+!build/Makefile
