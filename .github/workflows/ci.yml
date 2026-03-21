@@ -7,7 +7,30 @@ on:
     branches: [master]
 
 jobs:
-  build-and-verify:
+  # Detect which files changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**/*.c'
+              - '**/*.h'
+              - '**/*.kt'
+              - '**/*.rc'
+              - '**/Makefile'
+              - 'scripts/**'
+              - '.github/workflows/**'
+
+  # Full build + test — only when code changes
+  run-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,3 +50,17 @@ jobs:
 
       - name: Run test
         run: ./scripts/run-test.sh
+
+  # Gate check — required by branch protection, passes if tests pass or were skipped
+  build-and-verify:
+    needs: [changes, run-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ needs.run-tests.result }}" == "failure" ]]; then
+            echo "Tests failed"
+            exit 1
+          fi
+          echo "OK — tests passed or skipped (docs-only)"
