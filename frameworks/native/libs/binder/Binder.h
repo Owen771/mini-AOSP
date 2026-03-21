@@ -1,22 +1,31 @@
-#pragma once
-// mini-AOSP Binder — IPC interface base class (stub for Stage 0)
-// Real implementation in Stage 2: transact(), onTransact(), IBinder
-#include <string>
-#include <cstdint>
+#ifndef MINIAOSP_BINDER_H
+#define MINIAOSP_BINDER_H
 
-namespace miniaosp {
+/* mini-AOSP Binder — IPC interface base (stub for Stage 0)
+ * Real implementation in Stage 2: transact(), onTransact()
+ *
+ * In C, we use function pointers instead of virtual methods (vtable pattern).
+ * This is the same pattern Linux kernel uses for file_operations, inode_operations, etc.
+ */
+#include <stdint.h>
 
-class IBinder {
-public:
-    virtual ~IBinder() = default;
-    virtual int32_t transact(uint32_t code, const class Parcel& data, class Parcel* reply) = 0;
+struct parcel; /* forward declaration */
+
+/* Binder operations — like a C++ vtable */
+struct binder_ops {
+    int32_t (*on_transact)(void *self, uint32_t code,
+                           const struct parcel *data, struct parcel *reply);
+    void (*destroy)(void *self);
 };
 
-class BBinder : public IBinder {
-public:
-    int32_t transact(uint32_t code, const class Parcel& data, class Parcel* reply) override;
-protected:
-    virtual int32_t onTransact(uint32_t code, const class Parcel& data, class Parcel* reply);
+/* A binder node — holds the vtable + implementation pointer */
+struct binder_node {
+    struct binder_ops *ops;
+    void *impl; /* points to the concrete service data */
 };
 
-} // namespace miniaosp
+/* Dispatch a transaction through the vtable */
+int32_t binder_transact(struct binder_node *node, uint32_t code,
+                        const struct parcel *data, struct parcel *reply);
+
+#endif /* MINIAOSP_BINDER_H */

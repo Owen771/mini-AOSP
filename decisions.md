@@ -109,7 +109,7 @@ Architectural decisions and their rationale. Review this when revisiting past ch
 ## DEC-007: C++ for Native Layer, Kotlin for Framework/Apps
 
 **Date**: 2026-03-16
-**Status**: Decided
+**Status**: Superseded by DEC-013
 **Context**: Real AOSP uses C/C++ for everything below the framework and Java/Kotlin above.
 
 **Decision**: Same split. C++ for `init`, `servicemanager`, `zygote`, Binder library, Looper, lmkd. Kotlin for `system_server`, all framework services, all apps.
@@ -117,6 +117,8 @@ Architectural decisions and their rationale. Review this when revisiting past ch
 **Boundary**: Zygote (C++) launches Kotlin processes via `fork()` + `exec("java", "-jar", "process.jar")`.
 
 **Rationale**: Mirrors AOSP. C++ is necessary for process control (fork/exec), low-level IPC, and PID-1 init. Kotlin is productive for service logic and app model.
+
+**Superseded**: See DEC-013 — native layer changed from C++ to C.
 
 ---
 
@@ -191,3 +193,38 @@ Architectural decisions and their rationale. Review this when revisiting past ch
 **Decision**: Skip entirely in Phase 1. Phase 2 adds HAL interfaces with simulated hardware (Camera, Audio, Sensors).
 
 **Rationale**: HAL is architecturally important but not required for the core boot→app lifecycle loop. Deferring it keeps Phase 1 focused.
+
+---
+
+## DEC-013: C for Native Layer (replacing C++)
+
+**Date**: 2026-03-21
+**Status**: Decided (supersedes DEC-007 for native language choice)
+**Context**: DEC-007 chose C++ for the native layer. After building the PoC, we found the C++ usage was very shallow — only `std::string`, `std::vector`, `std::unordered_map`, and basic classes. No templates, no RAII, no smart pointers.
+
+**Decision**: Use **C (C11)** instead of C++ for all native-layer code (`init`, `servicemanager`, `zygote`, Binder library, Looper, `lmkd`). Kotlin remains for framework/apps.
+
+**Alternatives Considered**:
+
+| Option | Pros | Cons |
+|---|---|---|
+| **C (chosen)** | Closer to kernel interface (all syscalls are C); original AOSP servicemanager was pure C; no hidden runtime magic; better educational value (manual resource management, explicit vtable pattern); ~15-20% more code but zero conceptual overhead | String handling more verbose; no RAII (must manually free) |
+| **C++ (previous)** | Slightly less boilerplate with std::string/vector; RAII for cleanup | Hides resource management; current usage too shallow to justify the abstraction; harder to map to kernel patterns |
+| **Go** | Fast to write; built-in concurrency | Go runtime too thick for PID-1; `fork()` incompatible with Go's multi-threaded runtime; Zygote fork-without-exec impossible; can't map to AOSP source |
+
+**Rationale**:
+1. All syscall interfaces are C — using C removes the abstraction mismatch
+2. The original AOSP `servicemanager` was pure C (`service_manager.c`); Linux kernel is C; many AOSP low-level daemons have C roots
+3. Educational value: students see exactly how resources are managed, understand vtable patterns (function pointer structs), and learn patterns used throughout the kernel (`file_operations`, `inode_operations`, etc.)
+4. The extra workload (~15-20%) is in string handling and collection management, mitigated by a small `utils/str.h` helper library
+
+**Migration notes**:
+- `.cpp` → `.c`, `.h` stays `.h`
+- `g++`/`clang++` → `gcc`/`clang`, `-std=c++17` → `-std=c11`
+- `std::string` → `char*` + helper functions (`str_dup`, `str_startswith`, `str_split`)
+- `std::vector<Service>` → fixed-size arrays with count (`Service services[MAX]; int n_services;`)
+- `std::unordered_map` → linear scan arrays (registry has <64 entries; O(n) is fine)
+- `class IBinder` with virtual methods → `struct binder_ops` with function pointers (vtable pattern)
+- No `new`/`delete` — use `malloc`/`free` or stack allocation
+
+**Revisit if**: We find a native component that genuinely benefits from C++ features (templates, RAII) — unlikely in Phase 1.

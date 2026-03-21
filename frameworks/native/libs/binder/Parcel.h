@@ -1,27 +1,32 @@
-#pragma once
-// mini-AOSP Parcel — serialization container (stub for Stage 0)
-// Real implementation in Stage 2: writeInt32, writeString, flatten/unflatten
-#include <string>
-#include <vector>
-#include <cstdint>
+#ifndef MINIAOSP_PARCEL_H
+#define MINIAOSP_PARCEL_H
 
-namespace miniaosp {
+/* mini-AOSP Parcel — binary serialization container (stub for Stage 0)
+ * Real implementation in Stage 0D: writeInt32, writeString, cross-language interop */
+#include <stdint.h>
+#include <stddef.h>
 
-class Parcel {
-public:
-    void writeInt32(int32_t val);
-    void writeString(const std::string& val);
+#define PARCEL_INITIAL_CAPACITY 256
 
-    int32_t readInt32();
-    std::string readString();
-
-    const uint8_t* data() const;
-    size_t dataSize() const;
-    void setData(const uint8_t* data, size_t size);
-
-private:
-    std::vector<uint8_t> mData;
-    size_t mReadPos = 0;
+struct parcel {
+    uint8_t *data;
+    size_t   size;      /* bytes written */
+    size_t   capacity;  /* allocated size */
+    size_t   read_pos;  /* current read offset */
 };
 
-} // namespace miniaosp
+void    parcel_init(struct parcel *p);
+void    parcel_destroy(struct parcel *p);
+
+void    parcel_write_int32(struct parcel *p, int32_t val);
+void    parcel_write_string(struct parcel *p, const char *val);
+
+int32_t parcel_read_int32(struct parcel *p);
+/* Returns pointer into parcel buffer — valid until next write. Caller must NOT free. */
+const char *parcel_read_string(struct parcel *p, int32_t *out_len);
+
+const uint8_t *parcel_data(const struct parcel *p);
+size_t         parcel_data_size(const struct parcel *p);
+void           parcel_set_data(struct parcel *p, const uint8_t *data, size_t size);
+
+#endif /* MINIAOSP_PARCEL_H */

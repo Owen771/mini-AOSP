@@ -1,9 +1,7 @@
-#pragma once
-#include <string>
+#ifndef MINIAOSP_LOG_H
+#define MINIAOSP_LOG_H
 
-namespace miniaosp {
+/* Tagged logging: [tag] message */
+void miniaosp_log(const char *tag, const char *message);
 
-// Tagged timestamped logging: [tag] message
-void log(const std::string& tag, const std::string& message);
-
-} // namespace miniaosp
+#endif /* MINIAOSP_LOG_H */

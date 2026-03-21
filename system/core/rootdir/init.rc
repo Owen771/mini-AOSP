@@ -1,9 +1,11 @@
 # mini-AOSP init.rc — service definitions for Stage 0
 # Format: service <name> <command> [args...]
-# Services are started in order with a brief delay between each.
+#         wait_for <file>   — wait for file to exist before starting next service
+# Services are started in order.
 
-# Service registry — must start first
+# Service registry — must start first (handle 0 in Binder terms)
 service servicemanager ${MINI_AOSP_ROOT}/out/bin/servicemanager
+    wait_for /tmp/mini-aosp/servicemanager.ready
 
 # Framework services — connects to servicemanager, registers PingService
 service system_server java -jar ${MINI_AOSP_ROOT}/out/jar/system_server.jar
