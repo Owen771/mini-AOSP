@@ -119,6 +119,8 @@ Proxy（client 側）自動把參數寫進 Parcel + 送出。
 Stub（server 側）自動從 Parcel 讀出參數 + 呼叫真正的實作。
 
 AOSP 命名：**Bp** (Binder Proxy) / **Bn** (Binder Native)。
+- **Bp** — client 側的假物件，把 method call 序列化成 Parcel 送出去
+- **Bn** — server 側的真物件，從 Parcel 反序列化參數，呼叫真正的實作
 
 → **這就是為什麼需要 Proxy/Stub pattern (Bp/Bn)。**
 

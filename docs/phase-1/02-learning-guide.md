@@ -5,7 +5,7 @@
 > 每個 Step 都是一個可以獨立完成、獨立驗證的小任務。
 >
 > 📋 **AOSP 對照檢查：** 所有 Stage 已與真正 AOSP source code 交叉驗證。
-> 詳見 `[docs/aosp-cross-check.md](./aosp-cross-check.md)`。
+> 詳見 `[05-aosp-cross-check.md](./05-aosp-cross-check.md)`。
 >
 > 🔧 **語言選擇：** Native 層使用 **C**（不是 C++）。所有 syscall 介面本身就是 C，
 > 且 AOSP 早期的 servicemanager 也是純 C。詳見 [`decisions.md` DEC-013](../decisions.md)。

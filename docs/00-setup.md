@@ -1,10 +1,28 @@
 # mini-AOSP 設置指南
 
+## TL;DR — Linux 最快啟動
+
+```bash
+# 安裝依賴（Ubuntu/Debian）
+sudo apt install -y gcc make openjdk-17-jdk && \
+  curl -sL https://github.com/JetBrains/kotlin/releases/download/v2.0.0/kotlin-compiler-2.0.0.zip -o /tmp/kotlin.zip && \
+  sudo unzip -o /tmp/kotlin.zip -d /opt && sudo ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
+
+# Build + Run
+git clone <repo-url> mini-AOSP && cd mini-AOSP
+make -C build all
+./scripts/start.sh
+# 看到 "✓ Full stack verified" 就成功了
+# Ctrl+C 或 ./scripts/stop.sh 停止
+```
+
+---
+
 ## 需求
 
 | 工具 | 用途 | 最低版本 |
 |------|------|----------|
-| g++ 或 clang++ | 編譯 C++ (init, servicemanager) | C++17 支援 |
+| gcc 或 clang | 編譯 C (init, servicemanager) | C11 支援 |
 | Java (JDK) | 執行 Kotlin JAR (system_server, HelloApp) | 16+ (需要 Unix domain socket API) |
 | kotlinc | 編譯 Kotlin source → JAR | 任意近期版本 |
 | make | Build system | 任意 |
