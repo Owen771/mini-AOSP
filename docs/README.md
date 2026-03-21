@@ -21,7 +21,9 @@
 
 | # | Doc | 內容 |
 |---|-----|------|
-| 04 | [servicemanager.md](./components/04-servicemanager.md) | servicemanager 設計：現狀、Stage 1 後、Stage 3 最終狀態 |
+| 04 | [servicemanager.md](./components/04-servicemanager.md) | servicemanager：service registry（電話簿） |
+| 07 | [init.md](./components/07-init.md) | init：PID 1，啟動 + 監控所有 service |
+| 08 | [system-server.md](./components/08-system-server.md) | system_server：framework service 的容器（大腦） |
 
 ## Reference
 
