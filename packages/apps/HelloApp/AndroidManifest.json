@@ -1,0 +1,11 @@
+{
+    "package": "com.miniaosp.helloapp",
+    "versionCode": 1,
+    "versionName": "1.0",
+    "minSdkVersion": 1,
+    "application": {
+        "label": "HelloApp",
+        "mainClass": "apps.HelloApp"
+    },
+    "permissions": []
+}

@@ -1,0 +1,12 @@
+# mini-AOSP init.rc — service definitions for Stage 0
+# Format: service <name> <command> [args...]
+# Services are started in order with a brief delay between each.
+
+# Service registry — must start first
+service servicemanager ${MINI_AOSP_ROOT}/out/bin/servicemanager
+
+# Framework services — connects to servicemanager, registers PingService
+service system_server java -jar ${MINI_AOSP_ROOT}/out/jar/system_server.jar
+
+# Demo app — connects to servicemanager, sends PING, receives PONG
+service hello_app java -jar ${MINI_AOSP_ROOT}/out/jar/HelloApp.jar

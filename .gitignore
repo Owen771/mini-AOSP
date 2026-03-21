@@ -1,0 +1,5 @@
+out/
+/tmp/mini-aosp/
+*.class
+*.DS_Store
+.vscode/
