@@ -1,6 +1,5 @@
 #include "common.h"
 #include "constants.h"
-#include "../liblog/log.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -47,13 +46,3 @@ void miniaosp_strip_newlines(char *buf, size_t *len) {
         buf[--(*len)] = '\0';
 }
 
-/* --- Logging helper ----------------------------------------------------- */
-
-void miniaosp_log_fmt(const char *tag, const char *fmt, ...) {
-    char buf[1024];
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-    miniaosp_log(tag, buf);
-}

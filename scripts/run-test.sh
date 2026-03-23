@@ -11,7 +11,7 @@ TIMEOUT="${1:-30}"  # seconds to wait before giving up
 # ── Step 1: Build ───────────────────────────────────────────────────
 
 echo "[run-test] Building..."
-make -C "$ROOT_DIR/build" all 2>&1 | tail -3
+make -C "$ROOT_DIR/build" all 2>&1
 
 # ── Step 2: Clean previous run ──────────────────────────────────────
 

@@ -88,7 +88,7 @@ static void parse_service_line(char *line) {
 static int parse_init_rc(const char *path) {
     FILE *f = fopen(path, "r");                        /* 1. open */
     if (!f) {
-        miniaosp_log_fmt(TAG, "ERROR: Cannot open %s", path);
+        log_error(TAG, "Cannot open %s", path);
         return 0;
     }
 
@@ -120,8 +120,8 @@ static int parse_init_rc(const char *path) {
 static pid_t launch_service(struct service *svc) {
     pid_t pid = fork();                              /* 1. clone process */
     if (pid < 0) {
-        miniaosp_log_fmt(TAG, "ERROR: fork() failed for %s: %s",
-                         svc->name, strerror(errno));
+        log_error(TAG, "fork() failed for %s: %s",
+                  svc->name, strerror(errno));
         return -1;
     }
     if (pid == 0) {
@@ -158,7 +158,7 @@ static void launch_all_services(void) {
         if (pid <= 0) continue;
 
         svc->pid = pid;                              /* 2. record PID */
-        miniaosp_log_fmt(TAG, "Starting %s (PID %d)...", svc->name, pid);
+        log_info(TAG, "Starting %s (PID %d)...", svc->name, pid);
 
         /* 3. write PID file → /tmp/mini-aosp/<name>.pid */
         char pid_path[MAX_PATH_LEN];
@@ -170,12 +170,11 @@ static void launch_all_services(void) {
 
         /* 4. wait for readiness or use default grace period */
         if (svc->wait_for[0] != '\0') {
-            miniaosp_log_fmt(TAG, "Waiting for %s ready...", svc->name);
+            log_info(TAG, "Waiting for %s ready...", svc->name);
             if (miniaosp_wait_for_file(svc->wait_for, WAIT_FOR_TIMEOUT_MS))
-                miniaosp_log_fmt(TAG, "%s is ready.", svc->name);
+                log_info(TAG, "%s is ready.", svc->name);
             else
-                miniaosp_log_fmt(TAG, "WARNING: timeout waiting for %s",
-                                 svc->wait_for);
+                log_warn(TAG, "Timeout waiting for %s", svc->wait_for);
         } else {
             usleep(GRACE_PERIOD_US);
         }
@@ -198,13 +197,13 @@ static void monitor_children(void) {
                 if (svc->pid != exited) continue;
 
                 if (WIFEXITED(status))
-                    miniaosp_log_fmt(TAG, "%s exited with code %d",
-                                     svc->name, WEXITSTATUS(status));
+                    log_info(TAG, "%s exited with code %d",
+                             svc->name, WEXITSTATUS(status));
                 else if (WIFSIGNALED(status))
-                    miniaosp_log_fmt(TAG, "%s killed by signal %d",
-                                     svc->name, WTERMSIG(status));
+                    log_info(TAG, "%s killed by signal %d",
+                             svc->name, WTERMSIG(status));
                 else
-                    miniaosp_log_fmt(TAG, "%s exited (unknown status)", svc->name);
+                    log_info(TAG, "%s exited (unknown status)", svc->name);
                 svc->pid = -1;
                 break;
             }
@@ -215,7 +214,7 @@ static void monitor_children(void) {
                 if (g_services[i].pid > 0) { any_alive = 1; break; }
             }
             if (!any_alive) {
-                miniaosp_log(TAG, "All services exited. Shutting down.");
+                log_info(TAG, "All services exited. Shutting down.");
                 return;
             }
         }
@@ -228,15 +227,15 @@ static void monitor_children(void) {
  *   2. wait SHUTDOWN_GRACE_US (2s) for them to exit
  *   3. send SIGKILL to any that are still alive */
 static void shutdown_services(void) {
-    miniaosp_log(TAG, "Shutdown signal received. Stopping services...");
+    log_info(TAG, "Shutdown signal received. Stopping services...");
 
     /* 1. SIGTERM — polite request to exit */
     for (int i = 0; i < g_n_services; i++) {
         struct service *svc = &g_services[i];
         if (svc->pid > 0) {
             kill(svc->pid, SIGTERM);
-            miniaosp_log_fmt(TAG, "Sent SIGTERM to %s (PID %d)",
-                             svc->name, svc->pid);
+            log_info(TAG, "Sent SIGTERM to %s (PID %d)",
+                     svc->name, svc->pid);
         }
     }
 
@@ -286,21 +285,21 @@ int main(int argc, char *argv[]) {
     init_write_pid();                                /* 2. write PID file */
 
     const char *rc_path = (argc > 1) ? argv[1] : "system/core/rootdir/init.rc";
-    miniaosp_log_fmt(TAG, "Parsing %s...", rc_path);
+    log_info(TAG, "Parsing %s...", rc_path);
 
     if (parse_init_rc(rc_path) == 0) {               /* 3. parse init.rc */
-        miniaosp_log_fmt(TAG, "ERROR: No services found in %s", rc_path);
+        log_error(TAG, "No services found in %s", rc_path);
         return 1;
     }
 
     launch_all_services();                           /* 4. fork+exec all */
-    miniaosp_log(TAG, "All services started. Waiting...");
+    log_info(TAG, "All services started. Waiting...");
     monitor_children();                              /* 5. waitpid loop */
 
     if (g_shutdown)
         shutdown_services();                         /* 6. SIGTERM → SIGKILL */
 
     cleanup_pid_files();                             /* 7. cleanup */
-    miniaosp_log(TAG, "Shutdown complete.");
+    log_info(TAG, "Shutdown complete.");
     return 0;
 }
