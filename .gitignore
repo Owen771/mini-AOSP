@@ -7,3 +7,5 @@ out/
 # Override global gitignore that blocks build/
 !build/
 !build/Makefile
+
+docs/
