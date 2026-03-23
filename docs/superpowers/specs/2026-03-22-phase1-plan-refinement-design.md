@@ -119,7 +119,7 @@ The Stage 0 Parcel interop test (file-based) validates the wire format. This tes
 
 After servicemanager binds its Binder socket and is ready to accept transactions, it signals readiness to init using the pipe mechanism from Stage 1.
 
-Additionally, servicemanager sets property `servicemanager.ready=true` via the property store (Stage 1B). This allows other services to query readiness without the pipe.
+Note: Stage 1 has two sub-steps — Step 1A (crash-restart) and Step 1B (property store). The property store provides a system-wide key-value service over a Unix socket. Once the property store exists, servicemanager can also set `servicemanager.ready=true` as a queryable property. But the pipe-based signal is the primary mechanism — it's synchronous and doesn't depend on the property store being ready.
 
 Update the AOSP cross-check table: "ready 通知 🔴 需要加" → resolved.
 
@@ -156,6 +156,14 @@ Stage 7 **extends** this format with:
 - `permissions[]`
 
 This eliminates the bootstrap gap where Stage 4 references a format that doesn't exist yet.
+
+---
+
+### README Target Diagram
+
+**Change: update Zygote description in README**
+
+The README's "Target (Phase 1, Stage 8)" diagram shows Zygote using `fork (no exec)`. This contradicts Phase 1's actual approach (`fork+exec`). Update the diagram to say `fork+exec` and add a footnote: "Phase 2 upgrades to fork-without-exec via embedded JVM."
 
 ---
 
@@ -244,6 +252,15 @@ Protocol:
 
 lmkd maintains an in-memory table of `pid → oom_adj`. On memory pressure, it kills the highest-adj (lowest priority) process first, breaking ties by least-recently-used.
 
+**Change 3: lmkd uses pipe-based ready signal**
+
+lmkd uses the same pipe-based ready pattern as servicemanager: init creates a pipe, passes the write-end to lmkd, lmkd writes `READY\n` after binding `lmkd.sock`. This ensures system_server (which connects to lmkd) doesn't race against lmkd startup.
+
+Startup order enforced by init:
+1. servicemanager starts → READY (pipe)
+2. lmkd starts → READY (pipe)
+3. zygote starts → forks system_server → AMS connects to lmkd.sock
+
 ---
 
 ## Phase 2 Roadmap (High-Level)
@@ -306,3 +323,5 @@ Automated `make test-stage-N` that runs all verification scenarios. Enables regr
 | 9 | App attach passes IApplicationThread binder | S6 | Architecture fix |
 | 10 | lmkd as separate daemon (fix diagram) | S8 | Architecture fix |
 | 11 | lmkd↔AMS via socket protocol | S8 | Architecture fix |
+| 12 | Update README target diagram: Zygote uses `fork+exec` in Phase 1 | README | Doc fix |
+| 13 | lmkd uses pipe-based ready signal (same as SM) | S8 | New mechanism |
