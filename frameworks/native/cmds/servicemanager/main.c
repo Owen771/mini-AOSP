@@ -69,7 +69,7 @@ static void handle_add_service(char **saveptr, char *response, size_t rsize) {
     if (idx >= 0) {
         strncpy(g_services[idx].name, name, MAX_NAME - 1);       /* 3. store */
         strncpy(g_services[idx].socket_path, path, MAX_PATH_LEN - 1);
-        miniaosp_log_fmt(TAG, "Registered service: %s -> %s", name, path);
+        log_info(TAG, "Registered service: %s -> %s", name, path);
         snprintf(response, rsize, "OK\n");
     }
 }
@@ -146,7 +146,7 @@ static int create_listening_socket(const char *path) {
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);        /* 2. create socket */
     if (fd < 0) {
-        miniaosp_log(TAG, "ERROR: socket() failed");
+        log_error(TAG, "socket() failed");
         return -1;
     }
 
@@ -156,12 +156,12 @@ static int create_listening_socket(const char *path) {
     strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) { /* 3. bind */
-        miniaosp_log(TAG, "ERROR: bind() failed");
+        log_error(TAG, "bind() failed");
         close(fd);
         return -1;
     }
     if (listen(fd, 10) < 0) {                        /* 4. listen */
-        miniaosp_log(TAG, "ERROR: listen() failed");
+        log_error(TAG, "listen() failed");
         close(fd);
         return -1;
     }
@@ -192,7 +192,7 @@ int main(void) {
     int server_fd = create_listening_socket(MINIAOSP_SM_SOCKET); /* 2. socket */
     if (server_fd < 0) return 1;
 
-    miniaosp_log(TAG, "Listening on " MINIAOSP_SM_SOCKET);
+    log_info(TAG, "Listening on " MINIAOSP_SM_SOCKET);
     signal_readiness();                              /* 3. write .ready */
 
     /* 4. accept loop — select() with timeout so we can check g_shutdown */
@@ -212,7 +212,7 @@ int main(void) {
         int client_fd = accept(server_fd, NULL, NULL);
         if (client_fd < 0) {
             if (errno == EINTR) continue;
-            miniaosp_log(TAG, "ERROR: accept() failed");
+            log_error(TAG, "accept() failed");
             continue;
         }
         handle_client(client_fd);          /* read request, dispatch, respond */
@@ -220,7 +220,7 @@ int main(void) {
     }
 
     /* 5. cleanup */
-    miniaosp_log(TAG, "Shutting down.");
+    log_info(TAG, "Shutting down.");
     close(server_fd);
     unlink(MINIAOSP_SM_SOCKET);
     unlink(MINIAOSP_SM_READY);
